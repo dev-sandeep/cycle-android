@@ -11,8 +11,8 @@ import { CycleContextProvider } from './Context/CycleContext'
 // import UseCycle from './Context/UseCycle'
 
 export default function App() {
-  // const { transferFromAsync } = UseCycle();
-  // transferFromAsync();
+  // const { saveFromAsyncToState } = UseCycle();
+  // saveFromAsyncToState();
 
   return (
     <CycleContextProvider>
@@ -20,7 +20,7 @@ export default function App() {
         <Header />
         <Home />
         <Divider />
-        <CycleList />
+        <CycleList val={1} />
         {/* <EventList /> */}
         <PaperProvider>
           <DateSelectModal />

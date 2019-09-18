@@ -5,7 +5,7 @@ _goBack = () => console.log('Went back');
 
 _onSearch = () => console.log('Searching');
 
-_onMore = () => console.log('Shown more');
+_onMore = () => {console.log('Shown more');}
 
 function Header() {
     return (
@@ -18,7 +18,7 @@ function Header() {
                 subtitle="Do More, Worry Less"
             />
             <Appbar.Action icon="search" onPress={this._onSearch} />
-            <Appbar.Action icon="more-vert" onPress={this._onMore} />
+            {/* <Appbar.Action icon="more-vert" onPress={this._onMore} /> */}
         </Appbar.Header>
     )
 }

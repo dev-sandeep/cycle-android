@@ -20,7 +20,9 @@ const CycleContextProvider = (props) => {
         dialog: {
             message: 'This is dialog!',
             visibility: false
-        }
+        },
+
+        appLoadedFirstTime: false
     });
 
     return (

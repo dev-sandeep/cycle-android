@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "cycle-1",
-    "slug": "cycle",
+    "slug": "cycle-1",
     "privacy": "public",
     "sdkVersion": "34.0.0",
     "platforms": [
@@ -26,6 +26,6 @@
     "ios": {
       "supportsTablet": true
     },
-    "description": ""
+    "description": "period tracking app"
   }
 }

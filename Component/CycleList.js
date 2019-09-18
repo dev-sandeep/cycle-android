@@ -4,11 +4,11 @@ import ListItem from '../Component/ListItem'
 
 function CycleList() {
     const { eventList } = UseCycle();
-
+  
     return (
         <>
             {eventList.map((item, index) => (
-                <ListItem key={index} title={item.date} desc={item.desc} />
+                <ListItem key={index} date={item.date} title={item.title} desc={item.desc} />
             ))}
         </>
     );

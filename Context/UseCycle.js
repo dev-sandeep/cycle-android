@@ -1,13 +1,30 @@
 import { useContext, useEffect } from 'react';
 import { CycleContext } from "../Context/CycleContext";
 import moment from 'moment'
-import {AsyncStorage} from 'react-native';
+import { AsyncStorage, Alert } from 'react-native';
 
 const UseCycle = () => {
   const [state, setState] = useContext(CycleContext);
   const totalCycleDays = 4;
   const cyclePeriod = 29;
   const ideaSexDiff = 16;
+  let mainCycleData = state.cycles;
+
+  function saveFromAsyncToState() {
+    if (!state.appLoadedFirstTime) {
+      AsyncStorage.getItem('cycle-data').then((data) => {
+        let asyncData = data;
+        setTimeout(() => {
+          setState(state => ({ ...state, cycles: JSON.parse(data) }));
+          setState(state => ({ ...state, appLoadedFirstTime: true }));
+        }, 100);
+
+      }, (e) => {
+        console.log("e: ", e);
+      });
+    }
+  }
+  saveFromAsyncToState();
 
   function changeSelectDateVisibility() {
     setState(state => ({ ...state, dayModalVisibilityStatus: !state.dayModalVisibilityStatus }));
@@ -32,6 +49,7 @@ const UseCycle = () => {
       // changeSelectDateVisibility();
       let calendarData = clearPreviousSexAndEstimateDate();
       setState(state => ({ ...state, cycles: [...calendarData, { date, type }] }));
+      mainCycleData.push({ date, type });
       setTimeout(() => setIdealSexTime(date, type), 100);
     }
   }
@@ -39,9 +57,18 @@ const UseCycle = () => {
   function setIdealSexTime(selectedDate, type) {
     let nextCycle = moment(selectedDate, "YYYY-MM-DD").add(cyclePeriod, 'days').format('YYYY-MM-DD');;
     setState(state => ({ ...state, cycles: [...state.cycles, { date: nextCycle, type: 'expected-dates' }] }));
+    mainCycleData.push({ date: nextCycle, type: 'expected-dates' });
 
     let startSex = moment(nextCycle, "YYYY-MM-DD").subtract(ideaSexDiff, 'days').format('YYYY-MM-DD');
     setState(state => ({ ...state, cycles: [...state.cycles, { date: startSex, type: 'ideal-sex' }] }));
+    mainCycleData.push({ date: startSex, type: 'ideal-sex' });
+
+    //save in async storage
+    if (mainCycleData.length > 0) {
+      AsyncStorage.setItem("cycle-data", []).then(() => { }, (e) => { e });
+      AsyncStorage.setItem("cycle-data", JSON.stringify(mainCycleData)).then(() => { }, (e) => { e });
+    }
+    AsyncStorage.setItem("cycle-data", JSON.stringify(mainCycleData)).then(() => { }, (e) => { e });
   }
 
   function basicCheck(selectedDate) {
@@ -64,9 +91,19 @@ const UseCycle = () => {
     return true;
   }
 
+  function clearNullData() {
+    let events = state.cycles, arr = [];
+    for (var i = 0; i < events.length; i++) {
+      if (events[i])
+        arr.push(events[i]);
+    }
+    return arr;
+  }
   function checkLastCycleDayValidation(selectedDate) {
     //assuming last sex day is second last 
     let events = state.cycles;
+    events = clearNullData();
+    console.log("events", events);
     if (events.length < 2)
       return true;
 
@@ -84,6 +121,9 @@ const UseCycle = () => {
   function lastCycleDay(events) {
     let date = {};
     events.map((item) => {
+      if (!item || !item.type)
+        return;
+
       if (item.type == 'dates')
         date = item.date;
     });
@@ -93,7 +133,7 @@ const UseCycle = () => {
   function clearPreviousSexAndEstimateDate() {
     let events = state.cycles;
     let finalObj = events.filter((item) => {
-      if (item.type != 'ideal-sex' || item.type != 'expected-dates')
+      if ((item && item.type) && (item.type != 'ideal-sex' || item.type != 'expected-dates'))
         return item;
     });
 
@@ -104,6 +144,9 @@ const UseCycle = () => {
     let events = state.cycles;
     let finalEvents = {};
     events.map((item) => {
+      if (!item || !item.type)
+        return;
+
       let totalCycleDays = item.type == 'ideal-sex' ? 6 : 4;
       let color = item.type == 'ideal-sex' ? state.style.color.sex : state.style.color.cycles;
       for (var i = 0; i < totalCycleDays; i++) {
@@ -129,21 +172,64 @@ const UseCycle = () => {
     setState(state => ({ ...state, dialog: { visibility: false, message: '' } }));
   }
 
+  function deleteList(dateStr) {
+    console.log(dateStr);
+    let eventList = state.cycles;
+    Alert.alert(
+      'Delete ' + dateStr,
+      'Are you sure you want to delete this entry?',
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Cancel Pressed'),
+          style: 'cancel',
+        },
+        {
+          text: 'OK', onPress: () => {
+            let list = eventList.map((item) => {
+              if (!item || !item.date)
+                return;
+
+              if (item.date != dateStr) {
+                return item;
+              }
+            });
+            setState(state => ({ ...state, cycles: list }));
+            AsyncStorage.setItem("cycle-data", JSON.stringify(list)).then(() => { }, (e) => { e });
+          }
+        },
+      ],
+      { cancelable: false },
+    );
+  }
+
   function getEventList() {
     let events = state.cycles;
     let finalList = [];
     events.map((item) => {
+      if (!item || !item.type)
+        return;
+
       if (item.type == 'dates') {
-        finalList = [...finalList, { date: moment(item.date).format('ll'), desc: "Previous cycles started" }]
+        finalList = [...finalList, { date: item.date, title: moment(item.date).format('ll'), desc: "Previous cycles started" }]
       } else if (item.type == 'expected-dates') {
-        finalList = [...finalList, { date: moment(item.date).format('ll'), desc: "Next expected cycle" }]
+        finalList = [...finalList, { date: item.date, title: moment(item.date).format('ll'), desc: "Next expected cycle" }]
       } else {
-        finalList = [...finalList, { date: moment(item.date).format('ll'), desc: "Most appropriate time for pregnancy" }]
+        finalList = [...finalList, { date: item.date, title: moment(item.date).format('ll'), desc: "Higher chances of getting pregnant" }]
       }
 
     });
 
     return finalList;
+  }
+
+  function clearAllData() {
+    setState(state => ({ ...state, cycles: [] }));
+    AsyncStorage.setItem("cycle-data", []).then(() => {
+
+    }, (e) => {
+      console.log(e)
+    });
   }
 
   return {
@@ -161,7 +247,10 @@ const UseCycle = () => {
     hideDialog,
     dialogMessage: state.dialog.message,
     dialogVisibility: state.dialog.visibility,
-    eventList: getEventList()
+    eventList: getEventList(),
+    saveFromAsyncToState,
+    clearAllData,
+    deleteList
   }
 };
 
